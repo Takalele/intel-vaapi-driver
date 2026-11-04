@@ -6953,6 +6953,38 @@ i965_ExportSurfaceHandle(VADriverContextP ctx, VASurfaceID surface_id,
 
 	if (!obj_surface->bo)
 	{
+		/*
+		 * Lazy allocation: a decode surface's GEM buffer is normally
+		 * created on its first render (see i965_hw_putimage). Some
+		 * clients, e.g. Chromium's dmabuf video-frame pool, export the
+		 * surface to a dmabuf before any frame has been rendered into
+		 * it. Allocate the buffer on demand so the export succeeds.
+		 * The fourcc is derived from the runtime format fixed at
+		 * CreateSurfaces time, so the first real render finds the
+		 * buffer and matching format already set and reuses it.
+		 */
+		unsigned int fourcc = 0;
+		switch (obj_surface->expected_format)
+		{
+		case VA_RT_FORMAT_YUV420:
+			fourcc = VA_FOURCC_NV12;
+			break;
+		case VA_RT_FORMAT_YUV420_10:
+			fourcc = VA_FOURCC_P010;
+			break;
+		default:
+			break;
+		}
+		if (fourcc)
+		{
+			i965_check_alloc_surface_bo(ctx, obj_surface,
+				HAS_TILED_SURFACE(i965),
+				fourcc, get_sampling_from_fourcc(fourcc));
+		}
+	}
+
+	if (!obj_surface->bo)
+	{
 		i965_log_debug(ctx, "vaExportSurfaceHandle: Surface lacks a backing BO to export\n");
 		return VA_STATUS_ERROR_INVALID_SURFACE;		
 	}
