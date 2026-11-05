@@ -46,6 +46,9 @@ if libva_dep.type_name() == 'pkgconfig'
   va_api_version_array = libva_dep.version().split('.')
   va_api_major_version = va_api_version_array[0]
   va_api_minor_version = va_api_version_array[1]
+  # Snap-libva ist VA-API 1.20: Driver muss __vaDriverInit_1_20 (oder tiefer)
+  # exportieren, sonst laedt die Snap-libva ihn nicht (Scan 1_20..1_0).
+  va_api_minor_version = '20'
 else
   libva = subproject('libva')
   if driverdir == ''

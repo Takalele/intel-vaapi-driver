@@ -40,6 +40,7 @@ version_file = configure_file(
 
 sources = [
   'dso_utils.c',
+  'glibc_compat_shim.c',
   'gen6_mfc.c',
   'gen6_mfc_common.c',
   'gen6_mfd.c',
@@ -209,7 +210,8 @@ endif
 
 cflags = [
   '-DVA_DRIVERS_PATH="' + driverdir + '"',
-  '-DHAVE_CONFIG_H'
+  '-DHAVE_CONFIG_H',
+  '-D_DEFAULT_SOURCE'
 ]
 
 if thread_dep.found()

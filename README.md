@@ -70,11 +70,11 @@ and the matching format already set and reuses them.
 
 The snap environments load a VA-API 1.20 driver, so the `.so` must
 export `__vaDriverInit_1_20` and be linked against a glibc no newer than
-the snap's. The driver deployed as the workaround is a patched
-i965-va-driver 2.4.1 build that exports `__vaDriverInit_1_20`
-(reference md5 `925136594899`). A stock build on a modern host targets
-the host libva (VA-API 1.23) and exports `__vaDriverInit_1_23`, which
-will not load in the snap.
+the snap's. The deployed driver is this repo (the fork, 2.4.6.1) with
+the export patch, built for the snap target
+(`__vaDriverInit_1_20`, max glibc 2.34; reference md5 `51ca6485b7be`).
+A stock build on a modern host targets the host libva (VA-API 1.23)
+and exports `__vaDriverInit_1_23`, which will not load in the snap.
 
 ## Install
 
@@ -170,7 +170,7 @@ To confirm the running process loaded the patched file (Brave example):
 GPU_PID=$(pgrep -f 'brave.*--type=gpu-process' | head -1)
 sudo nsenter -t "$GPU_PID" -m md5sum \
   /snap/gnome-42-2204/*/usr/lib/x86_64-linux-gnu/dri/i965_drv_video.so
-# expect 925136594899...
+# expect 51ca6485b7be...
 ```
 
 The same check works for Firefox. The decode process is a content or
@@ -192,13 +192,13 @@ sudo umount $(mount | grep i965_drv_video | awk '{print $3}')
 
 ## Rebuild the driver from source
 
-The snaps bundle i965-va-driver 2.4.1. This repo is a newer 2.4.x
-series, so a drop-in for the snap should be built from a version whose
-libva and glibc symbols the snap accepts (2.4.1 with this patch is the
-reference build). Meson derives the driver init symbol from the host
+The deployed driver is built from this repo (the fork, 2.4.6.1) with
+the export patch. Meson derives the driver init symbol from the host
 libva, so a stock build on a current host exports
 `__vaDriverInit_1_23`. To target the snap's VA-API 1.20, pin the minor
-version in `meson.build`, after the pkgconfig lookup:
+version in `meson.build`, after the pkgconfig lookup, and add the
+`glibc_compat_shim.c` so the result does not import the glibc 2.38
+`__isoc23_*` symbols the snap's glibc 2.35 lacks:
 
 ```
   va_api_minor_version = '20'
